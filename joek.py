@@ -193,6 +193,9 @@ def main():
         path = sys.argv[1]
     else:
         path = "."
+    print "THis will recursively modify all files under directory: ", path
+    print "Press Ctrl-C now if you are not sure, enter otherwise"
+    raw_input()
     joetree(path)
 
 if __name__ == '__main__':
