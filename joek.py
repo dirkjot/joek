@@ -2,20 +2,24 @@
 # Dirk P. Janssen, fall 2015
 
 
-import sh
+import os
+import sys
 import re
 import collections
 import fileinput
 
 withinmapping = {
-  'Controller': 'Conjoer',
-  'Tranformer': 'Trevormer',
-  'Directive': 'Dirketive',
-  'Service': 'Sergeorge',
-  'Test': 'Rami',
-  'Autowired': 'Autorami',
-  'Inject': 'Inrami',
+    'Controller': 'Conjoer',
+    'Tranformer': 'Trevormer',
+    'Directive': 'Dirketive',
+    'Service': 'Sergeorge',
+    'Test': 'Rami',
+    'Autowired': 'Autorami',
+    'Inject': 'Inrami',
 }
+
+exclude_dirs = ".git .hg .DS_Store".split()
+
 
 keywords = """
 abstract	continue	for	new	switch
@@ -34,6 +38,7 @@ Map List Array ArrayList Boolean Void
 
 dynamicmapping = {}
 
+
 # find . -type f -name "*java" -exec cat {} \+ > tt
 def mostfrequent(infilename="tt"):
     freq = {}
@@ -41,7 +46,7 @@ def mostfrequent(infilename="tt"):
         for line in inf:
             line = spaceparens.sub(" ", line)
             for word in line.split():
-                freq[word] = freq.setdefault('word',0) + 1
+                freq[word] = freq.setdefault('word', 0) + 1
     freqkeys = collections.Counter(freq)
     freqkeys.most_common(100)
     
@@ -94,11 +99,11 @@ example = """
     public something Class OneTwoFour {  OneTwo.constructor() }
 """
 
-
 spaceparens = re.compile('[](){}.,;/+=*:?[-]')
 iscamel = re.compile('^[a-z]+[A-Z_]')
 inwordboundary = re.compile('(?=[A-Z])')
-classmatch = re.compile("Class\W+([A-Z_]+[a-zA-Z0-9_]+)\W+{")
+classmatch = re.compile("(Class|interface)\W+([A-Z_]+[a-zA-Z0-9_]+)\W+{")
+
 
 def joewordTest():
     assert joeword("aTwo") == "aTwoJoe"
@@ -111,6 +116,7 @@ def joewordTest():
     assert joeword("aTwoThreeFourFiveSixSevenEight") == \
         "aTwoThreeJoeFourFiveJoeSixSevenJoeEightJoe"
     
+
 def joeword(word):
     "make it a joe"
     wordlist = inwordboundary.sub(" ", word).split(" ")
@@ -122,11 +128,13 @@ def joeword(word):
         wordlist.append("Joe")
     return "".join(wordlist)
 
+
 def joetext1(text):
     """Joeify the text, standard replacejoes"""
     for frm, to in withinmapping.iteritems():
         text = text.replace(frm, to)
     return text
+
 
 def joetext2(text):
     """Joeify the text, add further dynamic inWordJoes"""
@@ -134,32 +142,68 @@ def joetext2(text):
     for word in textrip.split():
         if iscamel.match(word) and (not word in keywords) and (not word in dynamicmapping):
             dynamicmapping[word] = joeword(word)
-            print "Added", word, joeword(word)
+            # print "Added", word, joeword(word)
 
     for match in classmatch.finditer(text):
         word = match.group(1)
         if (not word in dynamicmapping) and (not word in keywords):
             dynamicmapping[word] = joeword(word)
-            print "Added class", word, joeword(word)
+            # print "Added class", word, joeword(word)
 
     for frm, to in dynamicmapping.iteritems():
         text = text.replace(frm, to)
     return text
 
-def test():
+
+def joeTest():
     "test joe"
     print joetext2(joetext1(example))
 
-def main():
-    "go joe"
-    for line in fileinput.input(inplace=True, backup=".bk"):
+
+def filejoe(filename):
+    "joe a file"
+    finput = fileinput.FileInput(filename, inplace=True)
+    for line in finput:
         print joetext2(joetext1(line))
+    finput.close()
+
+
+def filejoeTest():
+    filejoe(sys.argv[1])
+
+
+def joetree(path, regexfilter=["\.js$", "\.java$"]):
+    "joe all files in tree"
+    regexfilter = map(re.compile, regexfilter)
+    for (dirpath, dirnames, filenames) in os.walk(path):
+        filenames = filter(lambda fn: any([re.compile(regex).search(fn) 
+                                         for regex in regexfilter]),
+                           filenames)
+        for fn in filenames:
+            fullfn = os.path.join(dirpath, fn)
+            filejoe(fullfn)
+            print "Done", fullfn
+        for i, d in enumerate(dirnames):
+            if d in exclude_dirs:
+                del dirnames[i] 
+
+
+def main():
+    if len(sys.argv) > 1:
+        path = sys.argv[1]
+    else:
+        path = "."
+    joetree(path)
 
 if __name__ == '__main__':
     main()
 
+
+
+"""
 todo
 :: use walk to run auto on all java and js files
 :: append resulting dict to .joek or so, with timestamp
+"""
 
 
